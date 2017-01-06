@@ -4,16 +4,23 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "start:forever": "set PORT=3002 && forever ./bin/www"
+    "start:forever": "set PORT=3002 && forever -w ./bin/www"
   },
   "dependencies": {
+    "app-module-path": "^2.2.0",
+    "bluebird": "^3.4.7",
     "body-parser": "~1.15.2",
     "cookie-parser": "~1.4.3",
     "debug": "~2.2.0",
     "express": "~4.14.0",
+    "express-session": "^1.14.2",
     "jade": "~1.11.0",
     "less-middleware": "~2.2.0",
     "morgan": "~1.7.0",
-    "serve-favicon": "~2.3.0"
+    "mysql": "^2.12.0",
+    "q": "^1.4.1",
+    "serve-favicon": "~2.3.0",
+    "socket.io": "^1.7.2",
+    "url-join": "^1.1.0"
   }
 }
