@@ -2,6 +2,7 @@ var mqttclients = {};
 var loginedusers = {};
 var onlineDevices = {};
 var mqttFuncs = {};
+var mqttOrientFuncs = {};
 
 function createMqttServer(server) {
     var mosca = require('mosca');
@@ -34,34 +35,34 @@ function createMqttServer(server) {
         }
         client.onlinetime = new Date();
         mqttclients[client.id] = client;
+        mqttclients[client.id].logined = true;
     });
+    broker.on('clientDisconnected', function(client) {
+        delete mqttclients[client.id];
+    });
+
 
     // fired when a message is received
     broker.on('published', function(packet, client) {
-        console.log('packet.payload===', packet.payload.toString());
-        console.log('packet,client===', packet);
         if (packet.topic === 'server') {
-            console.log("client.id===", client.id);
             let payload = JSON.parse(packet.payload.toString());
             let type = payload.type;
             if (mqttFuncs[type]) {
-                mqttFuncs[type](payload.param).then((data) => {
+                //未登录的直接放
+                if ("auth/" === type.substr(0, 5) && (!mqttclients[client.id] || !mqttclients[client.id].logined)) {
+                    let ret = { uuid: payload.uuid, data: { success: false, code: 401, msg: "未登录!" } };
+                    pub(client.id, ret);
+                    return;
+                }
+                mqttFuncs[type](payload.param, client.id).then((data) => {
                     //返回结果
-                    console.log("client.id===", client.id);
-                    console.log("payload===", payload);
                     let ret = { uuid: payload.uuid, data: data };
-                    console.log(ret);
-                    var message = {
-                        topic: client.id,
-                        payload: JSON.stringify(ret), // or a Buffer
-                        qos: 0, // 0, 1, or 2
-                        retain: false // or true
-                    };
-                    broker.publish(message);
+                    pub(client.id, ret);
                 });
             } else {
                 console.error("错误:类型为" + type + "的处理方法未注册!")
             }
+
         }
         //let data = JSON.parse(packet.payload.toString());
 
@@ -75,21 +76,56 @@ function createMqttServer(server) {
     function setup() {
         console.log('Mosca server is up and running');
     }
+
+    function pub(topic, data) {
+        var message = {
+            topic: topic,
+            payload: JSON.stringify(data), // or a Buffer
+            qos: 0, // 0, 1, or 2
+            retain: false // or true
+        };
+        broker.publish(message);
+    }
 }
 
-function regmqttFuncs(type, func) {
-    mqttFuncs[type] = func;
+
+/**
+ * 
+ * @param {*} messagetype
+ * @param {*} processfunc  a function return promise
+ */
+function regMqttFuncs(messagetype, processfunc) {
+    mqttFuncs[messagetype] = processfunc;
 }
-regmqttFuncs("regdevice", (param) => {
-    console.log("regdevice===", param);
+
+
+//注册原始方法,需要使用client.id的方法
+regmqttFuncs("regdevice", (param, clientid) => {
     return new Promise((resolve, reject) => {
-        console.log(param);
-        //onlineDevices[param] = param;
+        onlineDevices[param.deviceid] = clientid;
+        resolve(true);
+    });
+});
+regmqttFuncs("login", (param, clientid) => {
+    console.log("login===", param, clientid);
+    return new Promise((resolve, reject) => {
+        //TODO 登录
+        loginedusers[param.loginid] = clientid;
+        mqttclients[clientid].logined = true;
+        resolve(true);
+    });
+});
+regmqttFuncs("auth/logout", (param, clientid) => {
+    return new Promise((resolve, reject) => {
+        //TODO 登录
+        delete loginedusers[param.loginid];
+        mqttclients[clientid].logined = false;
         resolve(true);
     });
 });
 
+
 module.exports = {
     createMqttServer: createMqttServer,
-    regmqttFuncs: regmqttFuncs
+    regMqttFuncs: regMqttFuncs
 }
