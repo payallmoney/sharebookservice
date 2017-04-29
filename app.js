@@ -7,11 +7,13 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 var apps = require('routes/index');
+var mqtt = require('utils/mqtt');
 var Q = require('q');
 Q.longStackSupport = true;
 var app = express();
 var http = require('http');
 
+app.createMqttServer = mqtt.createMqttServer;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
