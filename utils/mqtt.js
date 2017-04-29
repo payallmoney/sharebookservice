@@ -2,7 +2,6 @@ var mqttclients = {};
 var loginedusers = {};
 var onlineDevices = {};
 var mqttFuncs = {};
-var mqttOrientFuncs = {};
 
 function createMqttServer(server) {
     var mosca = require('mosca');
@@ -29,13 +28,11 @@ function createMqttServer(server) {
     broker.attachHttpServer(server);
     // httpServ.
     broker.on('clientConnected', function(client) {
-        console.log('client connected', client.id);
         if (client.onlinetime) {
             client.lastonlinetime = client.onlinetime;
         }
         client.onlinetime = new Date();
         mqttclients[client.id] = client;
-        mqttclients[client.id].logined = true;
     });
     broker.on('clientDisconnected', function(client) {
         delete mqttclients[client.id];
@@ -100,14 +97,13 @@ function regMqttFuncs(messagetype, processfunc) {
 
 
 //注册原始方法,需要使用client.id的方法
-regmqttFuncs("regdevice", (param, clientid) => {
+regMqttFuncs("regdevice", (param, clientid) => {
     return new Promise((resolve, reject) => {
         onlineDevices[param.deviceid] = clientid;
         resolve(true);
     });
 });
-regmqttFuncs("login", (param, clientid) => {
-    console.log("login===", param, clientid);
+regMqttFuncs("login", (param, clientid) => {
     return new Promise((resolve, reject) => {
         //TODO 登录
         loginedusers[param.loginid] = clientid;
@@ -115,7 +111,7 @@ regmqttFuncs("login", (param, clientid) => {
         resolve(true);
     });
 });
-regmqttFuncs("auth/logout", (param, clientid) => {
+regMqttFuncs("auth/logout", (param, clientid) => {
     return new Promise((resolve, reject) => {
         //TODO 登录
         delete loginedusers[param.loginid];
