@@ -2,15 +2,18 @@ var mqttclients = {};
 var loginedusers = {};
 var onlineDevices = {};
 var mqttFuncs = {};
+var mosca = require('mosca');
+var auth = require('utils/auth');
+var cfg = require('conf/conf.js');
 
 function createMqttServer(server) {
-    var mosca = require('mosca');
+
 
     var ascoltatore = {
         //using ascoltatore
         type: 'mongo',
-        url: 'mongodb://localhost:27017/mqtt',
-        pubsubCollection: 'mqtt',
+        url: `mongodb://${cfg.db.host}:${cfg.db.port}/${cfg.db.mqttdb}`,
+        pubsubCollection: cfg.db.mqttconnection,
         mongo: {}
     };
 
@@ -106,9 +109,17 @@ regMqttFuncs("regdevice", (param, clientid) => {
 regMqttFuncs("login", (param, clientid) => {
     return new Promise((resolve, reject) => {
         //TODO 登录
-        loginedusers[param.loginid] = clientid;
-        mqttclients[clientid].logined = true;
-        resolve(true);
+        auth.login(param).then((data) => {
+            console.log(data);
+            if (data) {
+                loginedusers[param.loginid] = clientid;
+                mqttclients[clientid].logined = true;
+                resolve({ success: true, code: 200, msg: "登录成功!" });
+            } else {
+                resolve({ success: false, code: 401, msg: "登录失败!用户名或密码错误!" });
+            }
+        }).catch((err) => reject(err))
+
     });
 });
 regMqttFuncs("auth/logout", (param, clientid) => {
