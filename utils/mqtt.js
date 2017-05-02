@@ -7,8 +7,6 @@ var auth = require('utils/auth');
 var cfg = require('conf/conf.js');
 
 function createMqttServer(server) {
-
-
     var ascoltatore = {
         //using ascoltatore
         type: 'mongo',
@@ -119,7 +117,6 @@ regMqttFuncs("login", (param, clientid) => {
                 resolve({ success: false, code: 401, msg: "登录失败!用户名或密码错误!" });
             }
         }).catch((err) => reject(err))
-
     });
 });
 regMqttFuncs("auth/logout", (param, clientid) => {
@@ -131,6 +128,19 @@ regMqttFuncs("auth/logout", (param, clientid) => {
     });
 });
 
+regMqttFuncs("register", (param, clientid) => {
+    return new Promise((resolve, reject) => {
+        //TODO 登录
+        auth.register(param).then((data) => {
+            console.log(data);
+            if (data) {
+                resolve({ success: true, code: 200, msg: "注册成功!" });
+            } else {
+                resolve({ success: false, code: 401, msg: "登录失败!用户名或密码错误!" });
+            }
+        }).catch((err) => reject(err))
+    });
+});
 
 module.exports = {
     createMqttServer: createMqttServer,
