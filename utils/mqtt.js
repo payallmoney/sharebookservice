@@ -1,10 +1,13 @@
 var mqttclients = {};
-var loginedusers = {};
+
 var onlineDevices = {};
 var mqttFuncs = {};
 var mosca = require('mosca');
-var auth = require('utils/auth');
-var cfg = require('conf/conf.js');
+//var auth = require('utils/auth');
+//var book = require('utils/book');
+var cfg = require('conf/conf');
+
+
 
 function createMqttServer(server) {
     var ascoltatore = {
@@ -39,14 +42,13 @@ function createMqttServer(server) {
         delete mqttclients[client.id];
     });
 
-
     // fired when a message is received
     broker.on('published', function(packet, client) {
         if (packet.topic === 'server') {
             let payload = JSON.parse(packet.payload.toString());
             let type = payload.type;
             if (mqttFuncs[type]) {
-                //未登录的直接放
+                //未登录的直接放行
                 if ("auth/" === type.substr(0, 5) && (!mqttclients[client.id] || !mqttclients[client.id].logined)) {
                     let ret = { uuid: payload.uuid, data: { success: false, code: 401, msg: "未登录!" } };
                     pub(client.id, ret);
@@ -96,6 +98,10 @@ function regMqttFuncs(messagetype, processfunc) {
     mqttFuncs[messagetype] = processfunc;
 }
 
+function setLogined(clientid, logined) {
+    mqttclients[clientid].logined = logined;
+}
+
 
 //注册原始方法,需要使用client.id的方法
 regMqttFuncs("regdevice", (param, clientid) => {
@@ -104,45 +110,10 @@ regMqttFuncs("regdevice", (param, clientid) => {
         resolve(true);
     });
 });
-regMqttFuncs("login", (param, clientid) => {
-    return new Promise((resolve, reject) => {
-        //TODO 登录
-        auth.login(param).then((data) => {
-            console.log(data);
-            if (data) {
-                loginedusers[param.loginid] = clientid;
-                mqttclients[clientid].logined = true;
-                resolve({ success: true, code: 200, msg: "登录成功!" });
-            } else {
-                resolve({ success: false, code: 401, msg: "登录失败!用户名或密码错误!" });
-            }
-        }).catch((err) => reject(err))
-    });
-});
-regMqttFuncs("auth/logout", (param, clientid) => {
-    return new Promise((resolve, reject) => {
-        //TODO 登录
-        delete loginedusers[param.loginid];
-        mqttclients[clientid].logined = false;
-        resolve(true);
-    });
-});
 
-regMqttFuncs("register", (param, clientid) => {
-    return new Promise((resolve, reject) => {
-        //TODO 登录
-        auth.register(param).then((data) => {
-            console.log(data);
-            if (data) {
-                resolve({ success: true, code: 200, msg: "注册成功!" });
-            } else {
-                resolve({ success: false, code: 401, msg: "登录失败!用户名或密码错误!" });
-            }
-        }).catch((err) => reject(err))
-    });
-});
 
 module.exports = {
     createMqttServer: createMqttServer,
-    regMqttFuncs: regMqttFuncs
+    regMqttFuncs: regMqttFuncs,
+    setLogined: setLogined
 }

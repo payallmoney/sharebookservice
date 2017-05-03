@@ -14,7 +14,8 @@ var app = express();
 var http = require('http');
 
 app.createMqttServer = mqtt.createMqttServer;
-
+var auth = require('utils/auth');
+var book = require('utils/book');
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
