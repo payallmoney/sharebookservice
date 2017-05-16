@@ -6,10 +6,12 @@ module.exports = {
 };
 
 
-function share(params) {
+function share(params, clientid) {
     var db = DB.getDB();
+    var userid = auth.getUserIdByClientId(clientid);
     var collection = db.collection('books');
     return collection.insertOne(params).then((doc) => {
+        db.collection('auth_user').findOneAndUpdate({ _id: userid }, { $inc: { point: 100, level: 1, sharelevel: 1 } });
         return { success: true, msg: "分享成功!" };
     });
 }
@@ -105,5 +107,27 @@ mqtt.regMqttFuncs("lastsearchs", (param, clientid) => {
                 }
             }
         );
+    });
+});
+
+mqtt.regMqttFuncs("focus", (param, clientid) => {
+    var userid = auth.getUserIdByClientId(clientid);
+    return new Promise((resolve, reject) => {
+        console.log("====popularsearch=====", param);
+        var db = DB.getDB();
+        var collection = db.collection('focus');
+        collection.findOneAndUpdate({ userid: userid, bookid: param._id }, { $set: { focustime: new Date() } }, { upsert: true });
+        resolve({ success: true, msg: "关注成功!" });
+    });
+});
+
+mqtt.regMqttFuncs("borrow", (param, clientid) => {
+    var userid = auth.getUserIdByClientId(clientid);
+    return new Promise((resolve, reject) => {
+        console.log("====popularsearch=====", param);
+        var db = DB.getDB();
+        var collection = db.collection('borrow');
+        collection.findOneAndUpdate({ userid: userid, bookid: param._id }, { $set: { focustime: new Date() } }, { upsert: true });
+        resolve({ success: true, msg: "借书成功!" });
     });
 });
