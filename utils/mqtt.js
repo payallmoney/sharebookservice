@@ -46,6 +46,7 @@ function createMqttServer(server) {
     broker.on('published', function(packet, client) {
         if (packet.topic === 'server') {
             let payload = JSON.parse(packet.payload.toString());
+            console.log("payload===", payload)
             let type = payload.type;
             if (mqttFuncs[type]) {
                 //未登录的直接放行
@@ -54,9 +55,11 @@ function createMqttServer(server) {
                     pub(client.id, ret);
                     return;
                 }
+                console.log(mqttFuncs[type]);
                 mqttFuncs[type](payload.param, client.id).then((data) => {
                     //返回结果
                     let ret = { uuid: payload.uuid, data: data };
+                    console.log(ret);
                     pub(client.id, ret);
                 });
             } else {

@@ -33,10 +33,77 @@ mqtt.regMqttFuncs("booklist", (param, clientid) => {
                 if (err) {
                     reject({ success: true, msg: "查询错误!请稍后再试!", err: err });
                 } else {
-                    resolve({ success: true, msg: "查询成功!", booklist: docs });
+                    resolve({ success: true, msg: "查询成功!", books: docs });
                 }
             }
         );
 
+    });
+});
+
+mqtt.regMqttFuncs("search", (param, clientid) => {
+    var userid = auth.getUserIdByClientId(clientid);
+    return new Promise((resolve, reject) => {
+        console.log(param);
+        var db = DB.getDB();
+        var collection = db.collection('books');
+        var searchs = db.collection('searchs');
+        var searchlog = db.collection('searchlog');
+        var item = { _id: param.text, num: 1 }
+        searchlog.findOneAndUpdate({ text: param.text, userid: userid }, { $set: { searchtime: new Date() } }, { upsert: true });
+        //searchs.findOneAndUpdate({ _id: param.text }, { $inc: { "num": 1 } }, { upsert: true });
+        var pagesize = param.page;
+        var skip = (pagesize - 1) * 10;
+        var textregex = new RegExp(param.text, "i");
+        collection.find({ $or: [{ title: textregex }, { author: textregex }] }, { skip: skip, limit: 10 }).toArray(
+            (err, docs) => {
+                if (err) {
+                    reject({ success: true, msg: "查询错误!请稍后再试!", err: err });
+                } else {
+                    console.log("docs[0]", docs[0]);
+                    if (docs[0]) {
+                        collection.findOneAndUpdate({ _id: docs[0]._id }, { $inc: { "searchnum": 1 } }, { upsert: true });
+                    }
+                    resolve({ success: true, msg: "查询成功!", books: docs });
+                }
+            }
+        );
+    });
+});
+
+mqtt.regMqttFuncs("popularsearch", (param, clientid) => {
+    return new Promise((resolve, reject) => {
+        console.log("====popularsearch=====", param);
+        var db = DB.getDB();
+        var collection = db.collection('books');
+        collection.find().sort({ searchnum: -1 }).limit(3).toArray(
+            (err, docs) => {
+                if (err) {
+                    reject({ success: true, msg: "查询错误!请稍后再试!", err: err });
+                } else {
+                    console.log("limit 3 docs", docs)
+                    resolve({ success: true, msg: "查询成功!", books: docs });
+                }
+            }
+        );
+    });
+});
+
+mqtt.regMqttFuncs("lastsearchs", (param, clientid) => {
+    var userid = auth.getUserIdByClientId(clientid);
+    return new Promise((resolve, reject) => {
+        console.log("====popularsearch=====", param);
+        var db = DB.getDB();
+        var collection = db.collection('searchlog');
+        collection.find({ userid: userid }).sort({ searchtime: -1 }).limit(5).toArray(
+            (err, docs) => {
+                if (err) {
+                    reject({ success: true, msg: "查询错误!请稍后再试!", err: err });
+                } else {
+                    console.log("limit 5 docs", docs)
+                    resolve({ success: true, msg: "查询成功!", searchs: docs });
+                }
+            }
+        );
     });
 });
