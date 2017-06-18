@@ -17,6 +17,7 @@
     "express-session": "^1.14.2",
     "jade": "~1.11.0",
     "less-middleware": "~2.2.0",
+    "moment": "^2.18.1",
     "mongodb": "^2.2.26",
     "morgan": "~1.7.0",
     "mosca": "^2.3.0",
